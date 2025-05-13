@@ -153,45 +153,45 @@ int queue_length(queue_t queue)
 	return queue->size;
 }
 
-int main(){ // for snippet testing.
-	const queue_t q = queue_create();
-	char* c = "hello!!";
-	char* d = "sleepysleepysleepy!!!";
-	char* e = "dog";
-	char* f;
-	queue_enqueue(q,c);
-	queue_enqueue(q,d);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,c);
-	queue_enqueue(q,e);
-	int status = queue_destroy(q);
-	printf("%d\n",status);
-	printf("Expected: dog, Got: %s\n",(char*)q->data[11]);
-	queue_dequeue(q,((void*) &f));
-	printf("Expected: hello!!, Deque output: %s\n",f);
-	printf("Expected: sleepysleepysleepy!!!, actual new_data[0]:%s\n",(char *)q->data[0]);
-	queue_delete(q,d);
-	printf("Expected: hello!!, actual new_data[0]:%s\n",(char*)q->data[0]);
+// int main(){ // for snippet testing.
+// 	const queue_t q = queue_create();
+// 	char* c = "hello!!";
+// 	char* d = "sleepysleepysleepy!!!";
+// 	char* e = "dog";
+// 	char* f;
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,d);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,c);
+// 	queue_enqueue(q,e);
+// 	int status = queue_destroy(q);
+// 	printf("%d\n",status);
+// 	printf("Expected: dog, Got: %s\n",(char*)q->data[11]);
+// 	queue_dequeue(q,((void*) &f));
+// 	printf("Expected: hello!!, Deque output: %s\n",f);
+// 	printf("Expected: sleepysleepysleepy!!!, actual new_data[0]:%s\n",(char *)q->data[0]);
+// 	queue_delete(q,d);
+// 	printf("Expected: hello!!, actual new_data[0]:%s\n",(char*)q->data[0]);
 
-	void callback(queue_t queue, void* data){
-		printf("%s ",(char*)data);
-	}
-	queue_iterate(q,callback);
-	printf("\n");
-	void callback2(queue_t queue, void* data){
-		queue_delete(queue,data);
-		printf("Deleted %s\n",(char*) data);
-	}
-	queue_iterate(q,callback2);
-	printf("Expected: (null), got data[0]: %s, Element Count: %d\n",(char*)q->data[0],q->size);
-	printf("Expected: 0, got: %d\n",queue_length(q));
-	return 0;
-}
+// 	void callback(queue_t queue, void* data){
+// 		printf("%s ",(char*)data);
+// 	}
+// 	queue_iterate(q,callback);
+// 	printf("\n");
+// 	void callback2(queue_t queue, void* data){
+// 		queue_delete(queue,data);
+// 		printf("Deleted %s\n",(char*) data);
+// 	}
+// 	queue_iterate(q,callback2);
+// 	printf("Expected: (null), got data[0]: %s, Element Count: %d\n",(char*)q->data[0],q->size);
+// 	printf("Expected: 0, got: %d\n",queue_length(q));
+// 	return 0;
+// }
 
