@@ -136,6 +136,8 @@ int queue_iterate(queue_t queue, queue_func_t func)
 	for (int i = 0; i < size; ++i){
 		func(queue,safe_copy[i]);
 	}
+
+	free(safe_copy);
 	
 
 	return 0;
