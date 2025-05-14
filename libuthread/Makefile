@@ -3,4 +3,20 @@ lib := libuthread.a
 
 all: $(lib)
 
-## TODO: Phase 1
+# Variables
+CC = gcc
+AR = ar
+CFLAGS = -Wall -Wextra -Werror
+ARFLAGS = rcs
+objs = queue.o
+
+# Default target (build the static library)
+all: $(lib)
+
+# Compile object files
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Archive the static library
+$(lib): $(objs)
+	$(AR) $(ARFLAGS) $@ $^
