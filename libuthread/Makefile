@@ -20,3 +20,6 @@ all: $(lib)
 # Archive the static library
 $(lib): $(objs)
 	$(AR) $(ARFLAGS) $@ $^
+
+clean:
+	rm -f $(objs) $(lib)
