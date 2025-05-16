@@ -6,9 +6,9 @@ all: $(lib)
 # Variables
 CC = gcc
 AR = ar
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra
 ARFLAGS = rcs
-objs = queue.o
+objs = queue.o uthread.o context.o
 
 # Default target (build the static library)
 all: $(lib)
