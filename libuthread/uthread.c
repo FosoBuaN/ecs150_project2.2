@@ -10,62 +10,58 @@
 #include "uthread.h"
 #include "queue.h"
 
-typedef enum{
-	RUNNING,
-	READY, 
-	BLOCKED, 
-	EXITED //not sure if this needs to be here 
+typedef enum{ //possible states a thread can be in
+	RUNNING, //actively executing 
+	READY, //waiting to be scheduled
+	BLOCKED, //waiting on a condition/semaphore
+	EXITED //finished
 } uthread_state;
 
-struct uthread_tcb {
-	/* TODO Phase 2 */
-	uthread_ctx_t *context; 
-	void *stack; 
-	uthread_state state; 
+struct uthread_tcb { //single thread
+	uthread_ctx_t *context; //saved context of this thread (pointer is ok... mostly cause a lot of dependent)
+	void *stack; //pointer to the thread's stack in memory
+	uthread_state state; //current state of the thread
 };
 
-// This the thing that helps iterate
-static struct uthread_tcb *current_uthread = NULL; 
+static struct uthread_tcb *current_uthread = NULL;  //thread that's running right now
 
 // This is our main thread
 static struct uthread_tcb *idle_thread = NULL;
 
 // Let's have a queue for each state instead... less work lol
-static queue_t ready_queue = NULL; 
-static queue_t block_queue = NULL;
+static queue_t ready_queue = NULL; //the queue that holds all the threads that are READY
+// static queue_t block_queue = NULL; // Removing cause sem.c tracks this queue instead.
 static queue_t exit_queue = NULL;
 
-static bool loaded = false; // flag to assure all dependencies (queues) loaded
+static bool loaded = false; // flag to assure all dependencies (queues and idle_thread) loaded
 
 // Helper function to load required stuff
 static void uthread_init(void){
 	// Idle thread will be whoever first invokes init().
 	idle_thread = (struct uthread_tcb*)malloc(sizeof(struct uthread_tcb));
 	if (!idle_thread){
-		exit(1);
+		exit(-1);
 	}
 	// Configure idle context for backup
 	idle_thread->context = (uthread_ctx_t*)malloc(sizeof(uthread_ctx_t));
 	if (!idle_thread->context){
 		free(idle_thread);
-		exit(1);
+		exit(-1);
 	}
 	if (getcontext(idle_thread->context)){
 		free(idle_thread->context);
 		free(idle_thread);
-		exit(1);
+		exit(-1);
 	}
 	idle_thread->state = RUNNING; // Doesn't really need a state tbh.
 	ready_queue = queue_create();
-	block_queue = queue_create();
 	exit_queue = queue_create();
-	if (!ready_queue || !block_queue || !exit_queue){
+	if (!ready_queue || !exit_queue){
 		// since free(NULL) is safe...
 		free(idle_thread);
 		free(ready_queue);
-		free(block_queue);
 		free(exit_queue);
-		exit(1);
+		exit(-1);
 	}
 	current_uthread = idle_thread;
 
@@ -75,31 +71,30 @@ static void uthread_init(void){
 struct uthread_tcb *uthread_current(void)
 {
 	if (!loaded){
-		exit(1); // y would user call if not loaded
+		exit(-1); // y would user call if not loaded
 	}
 	/* TODO Phase 2/3 */
 	return(current_uthread);
 }
 
-// callback function to clean EXIT and get stuff
-
 void uthread_yield(void)
 {
 	if (!loaded){
-		exit(1);
+		exit(-1);
 	}
-	/* TODO Phase 2 */
-	struct uthread_tcb *next_uthread, *prev_uthread;
-	// int length = queue_length(thread_queue);
-	prev_uthread = current_uthread;
-	next_uthread = (struct uthread_tcb*)malloc(sizeof(struct uthread_tcb));
-	// Check malloc error for next thread
-
-	queue_dequeue(ready_queue,(void**)&next_uthread);
-	// Check error for dequeue
-
 	
-	queue_enqueue(ready_queue,current_uthread); // Store current: a thread that can yield must be ready
+	struct uthread_tcb *next_uthread = NULL, *prev_uthread = current_uthread;
+	// int length = queue_length(thread_queue);
+
+	if(queue_dequeue(ready_queue,(void**)&next_uthread)){// Check error for dequeue
+		printf("hi\n");
+	}
+	
+
+	// If a blocked thread yields then it doesn't go into ready.
+	if (current_uthread->state == READY){
+		queue_enqueue(ready_queue,current_uthread);
+	}
 
 	current_uthread = next_uthread; // Update current
 	uthread_ctx_switch(prev_uthread->context,next_uthread->context);
@@ -108,46 +103,45 @@ void uthread_yield(void)
 	/*
 		No longer need following logic since we have a separate queue for each state.
 	*/
-	// for(int i = 0; i < length; i++){
-	// 	if(queue_dequeue(thread_queue, (void**) &next_uthread) != 0){
-	// 		return;
+	// int length = queue_length(thread_queue); //getting how many threads are waiting
+	
+	// for(int i = 0; i < length; i++){ //looking for a thread that's READY
+	// 	if(queue_dequeue(thread_queue, &next_uthread) != 0){
+	// 		return; 
 	// 	}
 	// 	if(next_uthread == NULL){
 	// 		return; 
 	// 	}
-	// 	// if(next_uthread->state == READY){
-	// 	// 	break; 
-	// 	// }
-	// 	if(queue_enqueue(thread_queue, next_uthread) != 0){
-	// 		free(next_uthread);
+	// 	if(next_uthread->state == READY){
+	// 		break; //found a thread that's READY
+	// 	}
+	// 	if(queue_enqueue(thread_queue, next_uthread) != 0){ //if not READY place it back in the queue
+	// 		free(next_uthread); //if enqueue fails, free memory 
 	// 		return;
 	// 	}
 
 	// }
-	// if(next_uthread == NULL){
+	// if(next_uthread == NULL){ //checking if there is actually a valid thread
 	// 	return;
 	// }
-	// if(next_uthread->state == BLOCKED){
-	// 	next_uthread->state = READY;
-	// }
 	
-	// if(current_uthread->state == RUNNING){
+	// if(current_uthread->state == RUNNING){ //if a thread's RUNNING right now, mark it READY before switching
 	// 	current_uthread->state = READY; 
 	// }
-	// queue_enqueue(thread_queue, current_uthread);
-	// prev_uthread = current_uthread;
+	// queue_enqueue(thread_queue, current_uthread);//put that thread in the back in the READY queue
+	// prev_uthread = current_uthread; //save the previous thread and switch to the next thread
 	// current_uthread = next_uthread;
-	// current_uthread->state = RUNNING; 
+	// current_uthread->state = RUNNING; //change the state of the new thread to RUNNING
 
-	// uthread_ctx_switch(prev_uthread->context, next_uthread->context);
+	// uthread_ctx_switch(&prev_uthread->context, &next_uthread->context); //switch context to the new thread
 }
 
 void uthread_exit(void)
 {
 	if (!loaded){
-		exit(1); // crash
+		exit(-1); // crash
 	}
-	/* TODO Phase 2 */
+	
 	struct uthread_tcb *current = uthread_current();
 	current->state = EXITED; 
 	/* Hmm... I think if you free current then there's really no need to mark EXITED even.
@@ -210,12 +204,12 @@ int uthread_create(uthread_func_t func, void *arg)
 
 int uthread_run(bool preempt, uthread_func_t func, void *arg)
 {
-    (void)preempt; // Skip error;
+    preempt_start(preempt);
 
 	if (!loaded){
 		uthread_init();
 	}
-    printf("run here\n");
+
     // There are cases where users will call create() before run().
     // Cannot just initialize queue_create() here. Need more dynamic approach.
     // Doesn't matter atm for our testing.
@@ -236,8 +230,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
     */
     while(queue_length(ready_queue) > 0){
         // uthread_yield();
-        struct uthread_tcb *prev_thread = current_uthread;
-        struct uthread_tcb *next_thread = (struct uthread_tcb*)malloc(sizeof(struct uthread_tcb));
+        struct uthread_tcb *prev_thread = current_uthread, *next_thread = NULL;;
         // Error check here TODO
 
         queue_dequeue(ready_queue,(void**)&next_thread);
@@ -251,8 +244,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
     }
     
     queue_destroy(ready_queue);
-	// Have some helper function here destroy everything.
+	// Have some helper function here destroy everything. queue_destroy don't work if queue is not empty.
     free(current_uthread);
+	preempt_stop();
     
     return 0;
 
@@ -263,15 +257,15 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 void uthread_block(void)
 {
 	/* TODO Phase 3 */
-	current_uthread->state = BLOCKED;
-	uthread_yield();
+	current_uthread->state = BLOCKED; //changing the state of the thread to BLOCKED
+	uthread_yield(); //yielding so another thread can run
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
 	/* TODO Phase 3 */
-	if(uthread->state == BLOCKED){
-		uthread->state = READY; 
-		queue_enqueue(ready_queue, uthread);
+	if(uthread->state == BLOCKED){ //if the thread is BLOCKED 
+		uthread->state = READY;  //changing it's state to READY
+		queue_enqueue(ready_queue, uthread); // //placing it back in the ready queue 
 	}
 }

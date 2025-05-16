@@ -29,6 +29,7 @@ static void preempt_signal_handler(int signum) {
 
     // Force current thread to yield
     uthread_yield();
+    // printf("Hello world\n");
 }
 
 void preempt_disable(void)
@@ -39,15 +40,13 @@ void preempt_disable(void)
     // Backup current signal handler for SIGVTALRM
     struct sigaction tmp_sa;
     memset(&tmp_sa, 0, sizeof(tmp_sa));   // Zero out the struct
-    sigaction(SIGVTALRM, NULL, &tmp_sa);   // Get the current handler
-    sigaction(SIGVTALRM, &old_action, NULL); // Restore the previous one (or normal one)
+    sigaction(SIGVTALRM, &old_action, &tmp_sa);   // Get the current handler and restore the previous one (or handler one)
     old_action = tmp_sa;                  // Store current as old
 
     // Backup current virtual timer configuration
     struct itimerval tmp_tm;
     memset(&tmp_tm, 0, sizeof(tmp_tm));   
-    getitimer(ITIMER_VIRTUAL, &tmp_tm);  
-    setitimer(ITIMER_VIRTUAL, &old_timer, NULL);  
+    setitimer(ITIMER_VIRTUAL, &old_timer, &tmp_tm);  
     old_timer = tmp_tm;                   
 
     preempt_state = false;
@@ -61,15 +60,13 @@ void preempt_enable(void)
 	// Backup current signal handler for SIGVTALRM
     struct sigaction tmp_sa;
     memset(&tmp_sa, 0, sizeof(tmp_sa));   // Zero out the struct
-    sigaction(SIGVTALRM, NULL, &tmp_sa);   // Get the current handler
-    sigaction(SIGVTALRM, &old_action, NULL); // Restore the previous one (or handler one)
+    sigaction(SIGVTALRM, &old_action, &tmp_sa);   // Get the current handler and restore the previous one (or handler one)
     old_action = tmp_sa;                  // Store current as old
 
     // Backup current virtual timer configuration
     struct itimerval tmp_tm;
     memset(&tmp_tm, 0, sizeof(tmp_tm));   
-    getitimer(ITIMER_VIRTUAL, &tmp_tm);  
-    setitimer(ITIMER_VIRTUAL, &old_timer, NULL);  
+    setitimer(ITIMER_VIRTUAL, &old_timer, &tmp_tm);  
     old_timer = tmp_tm; 
 
 	preempt_state = true;
@@ -93,23 +90,18 @@ void preempt_start(bool preempt)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
 
-	// Backup current action
-	sigaction(SIGVTALRM, NULL, &old_action);
-
-	// Set new action
-    sigaction(SIGVTALRM, &sa, NULL);
+	// Backup current action and set new action
+	sigaction(SIGVTALRM, &sa, &old_action);
 
 	// actual timer setup
 	struct itimerval timer;
 	memset(&timer, 0, sizeof(timer));
     timer.it_interval.tv_sec = 0;
-    timer.it_interval.tv_usec = HZ * 100;
+    timer.it_interval.tv_usec = 1000000/HZ;
     timer.it_value = timer.it_interval;
 
-	// Backup original timer
-    getitimer(ITIMER_VIRTUAL, &old_timer);
-	// Set actual timer with HZ delay
-    setitimer(ITIMER_VIRTUAL, &timer, NULL);
+	// Backup original timer and Set actual timer with HZ delay
+    setitimer(ITIMER_VIRTUAL, &timer, &old_timer);
 }
 
 void preempt_stop(void)
