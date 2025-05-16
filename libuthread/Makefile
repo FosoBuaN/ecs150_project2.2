@@ -6,7 +6,7 @@ all: $(lib)
 # Variables
 CC = gcc
 AR = ar
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra -Werror
 ARFLAGS = rcs
 objs = queue.o uthread.o context.o sem.o preempt.o
 
