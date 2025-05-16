@@ -13,7 +13,7 @@ struct queue {
 
 queue_t queue_create(void)
 {
-	queue_t q = malloc(sizeof(queue_t));
+	queue_t q = malloc(sizeof(*q));
 
 	if (!q){
 		return NULL;
@@ -68,7 +68,7 @@ int queue_enqueue(queue_t queue, void *data)
 		/* copy old data to cover new bottom half. data size can use either length or size - 1
 		   as they're the same value in this particular resize scope.
 		*/
-		memcpy(queue->data,tmp, queue->length * sizeof(void*));
+		memcpy(queue->data,tmp, old_length * sizeof(void*));
 		free(tmp); // release old memory buffer
 	}
 	
@@ -181,7 +181,9 @@ int queue_length(queue_t queue)
 // 	printf("Expected: hello!!, actual new_data[0]:%s\n",(char*)q->data[0]);
 
 // 	void callback(queue_t queue, void* data){
-// 		printf("%s ",(char*)data);
+// 		if (queue){
+// 			printf("%s ",(char*)data);
+// 		}
 // 	}
 // 	queue_iterate(q,callback);
 // 	printf("\n");
